@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok MP3 Downloader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        .music-cover {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            animation: spin 10s linear infinite;
+            animation-play-state: paused;
+        }
+        .playing .music-cover {
+            animation-play-state: running;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .btn-tiktok {
+            background-color: #000;
+            color: #fff;
+            font-weight: 600;
+        }
+        .btn-tiktok:hover { background-color: #333; color: #fff; }
+        #resultArea { display: none; }
+        .loading-spinner { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card p-4">
+        <h3 class="text-center mb-4 fw-bold">🎵 TikTok MP3 Downloader</h3>
+        
+        <div class="input-group mb-3">
+            <input type="text" id="urlInput" class="form-control form-control-lg" placeholder="Dán link TikTok vào đây...">
+            <button class="btn btn-tiktok" type="button" onclick="getInfo()">Lấy Nhạc</button>
+        </div>
+
+        <!-- Loading -->
+        <div class="text-center loading-spinner" id="loader">
+            <div class="spinner-border text-dark" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Đang xử lý...</p>
+        </div>
+
+        <!-- Result Area -->
+        <div id="resultArea" class="text-center mt-4">
+            <div class="d-flex justify-content-center mb-3">
+                <img id="musicCover" src="" class="music-cover" alt="Cover">
+            </div>
+            
+            <h5 id="musicTitle" class="fw-bold text-truncate">Tên bài hát</h5>
+            <p id="musicAuthor" class="text-muted small">Tác giả</p>
+
+            <div class="d-grid gap-2 mt-4">
+                <a id="downloadBtn" href="#" class="btn btn-success btn-lg shadow-sm">
+                    ⬇️ Tải MP3 Ngay
+                </a>
+                <a id="originalLink" href="#" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    Nghe thử trên trình duyệt
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL của Server Python (Localhost)
+    const API_BASE = "http://127.0.0.1:8000";
+
+    async function getInfo() {
+        const url = document.getElementById('urlInput').value.trim();
+        const resultArea = document.getElementById('resultArea');
+        const loader = document.getElementById('loader');
+
+        if (!url) return alert("Vui lòng nhập link!");
+
+        // Reset giao diện
+        resultArea.style.display = 'none';
+        loader.style.display = 'block';
+        document.querySelector('.music-cover').classList.remove('playing');
+
+        try {
+            // Gọi API Python
+            const response = await fetch(`${API_BASE}/api/info?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+
+            if (response.status !== 200) {
+                alert("Lỗi: " + (data.detail || "Không lấy được thông tin"));
+                return;
+            }
+
+            // Hiển thị dữ liệu
+            document.getElementById('musicCover').src = data.cover;
+            document.getElementById('musicTitle').innerText = data.music_title;
+            document.getElementById('musicAuthor').innerText = data.music_author;
+            
+            // Tạo link tải thông qua API Proxy của Python để ép trình duyệt tải file
+            const downloadUrl = `${API_BASE}/api/download_mp3?url=${encodeURIComponent(data.mp3_url)}&filename=${encodeURIComponent(data.music_title)}`;
+            
+            document.getElementById('downloadBtn').href = downloadUrl;
+            document.getElementById('originalLink').href = data.mp3_url;
+
+            // Hiệu ứng quay đĩa nhạc
+            document.querySelector('.music-cover').classList.add('playing');
+
+            resultArea.style.display = 'block';
+
+        } catch (error) {
+            alert("Lỗi kết nối đến server Python!");
+            console.error(error);
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
