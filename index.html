@@ -86,7 +86,7 @@
 
 <script>
     // URL của Server Python (Localhost)
-    const API_BASE = "http://127.0.0.1:8000";
+    const API_BASE = "";
 
     async function getInfo() {
         const url = document.getElementById('urlInput').value.trim();
@@ -112,11 +112,31 @@
 
             // Hiển thị dữ liệu
             document.getElementById('musicCover').src = data.cover;
-            document.getElementById('musicTitle').innerText = data.music_title;
+            document.getElementById('musicTitle').innerText = data.desc;
             document.getElementById('musicAuthor').innerText = data.music_author;
             
-            // Tạo link tải thông qua API Proxy của Python để ép trình duyệt tải file
-            const downloadUrl = `${API_BASE}/api/download_mp3?url=${encodeURIComponent(data.mp3_url)}&filename=${encodeURIComponent(data.music_title)}`;
+            // --- BẮT ĐẦU SỬA TỪ ĐÂY ---
+            
+            // 1. Lấy Unique ID (nếu không có thì dùng 'tiktok')
+            const uniqueId = data.author_unique_id || "tiktok";
+
+            // 2. Lấy Description, cắt 50 ký tự
+            let shortDesc = data.desc || "audio";
+            // Thay thế ký tự xuống dòng bằng khoảng trắng để tránh lỗi
+            shortDesc = shortDesc.replace(/[\r\n]+/g, " "); 
+            // Cắt chuỗi nếu dài quá 50 ký tự
+            if (shortDesc.length > 50) {
+                shortDesc = shortDesc.substring(0, 50);
+            }
+
+            // 3. Ghép tên file: unique_id + _ + desc
+            // Kết quả: leren012_Full  món thịt kho đặc....
+            const fileName = `${uniqueId}_${shortDesc}`;
+
+            // 4. Tạo link tải với tên file mới
+            const downloadUrl = `${API_BASE}/api/download_mp3?url=${encodeURIComponent(data.mp3_url)}&filename=${encodeURIComponent(fileName)}`;
+            
+            // --- KẾT THÚC SỬA ---
             
             document.getElementById('downloadBtn').href = downloadUrl;
             document.getElementById('originalLink').href = data.mp3_url;
@@ -125,6 +145,8 @@
             document.querySelector('.music-cover').classList.add('playing');
 
             resultArea.style.display = 'block';
+
+
 
         } catch (error) {
             alert("Lỗi kết nối đến server Python!");
